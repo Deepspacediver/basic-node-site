@@ -4,35 +4,44 @@ const fs = require('fs/promises');
 
 
 const NOT_FOUND_404_FILE_NAME = '404.html';
-const routes = ['/', '/about', '/contact-me'];
 
-function isPathInRoutes(path) {
-    return routes.some(route => route === path);
+function getFile(path) {
+    let fileToServe;
+    switch (path) {
+        case ('/'): {
+            fileToServe = 'index.html';
+            break;
+        }
+        case('/about'): {
+            fileToServe = 'about.html';
+            break;
+        }
+
+        case ('/contact-me'): {
+            fileToServe = 'contact-me.html';
+            break;
+        }
+        default: {
+            fileToServe = NOT_FOUND_404_FILE_NAME;
+            break;
+        }
+    }
+
+    return fileToServe;
 }
 
 
 const server = http.createServer(async (req, res) => {
     const pathName = URL.parse(req.url, true).pathname;
-    if (!isPathInRoutes(pathName)) {
-        try {
-            const data = await fs.readFile(NOT_FOUND_404_FILE_NAME, {encoding: 'utf8'});
-            res.writeHead(200, {'Content-Type': 'text/html'});
-            return res.end(data);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-    const fileName = pathName === '/' ?
-        'index.html' :
-        `${pathName.replace('/', '')}.html`;
-
+    const fileToServer = getFile(pathName);
+    const isFile404 = fileToServer === NOT_FOUND_404_FILE_NAME;
     try {
-        const data = await fs.readFile(fileName, {encoding: 'utf8'});
-        res.writeHead(200, {'Content-Type': 'text/html'});
+        const data = await fs.readFile(fileToServer, {encoding: 'utf8'});
+        res.writeHead(isFile404 ? 404 : 200, {'Content-Type': 'text/html'});
         return res.end(data);
     } catch (e) {
-        console.error(e);
-
+        res.writeHead(500, {'Content-Type': 'text/html'});
+        return res.end('Internal Server Error');
     }
 });
 
