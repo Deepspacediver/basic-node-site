@@ -1,6 +1,8 @@
-const http = require('http');
 const URL = require('url');
 const fs = require('fs/promises');
+
+const express = require('express');
+const app = express();
 
 
 const NOT_FOUND_404_FILE_NAME = '404.html';
@@ -31,19 +33,29 @@ function getFile(path) {
 }
 
 
-const server = http.createServer(async (req, res) => {
+app.get(['/', '/contact-me', '/about'], async (req, res) => {
     const pathName = URL.parse(req.url, true).pathname;
-    const fileToServer = getFile(pathName);
-    const isFile404 = fileToServer === NOT_FOUND_404_FILE_NAME;
+    const fileToServe = getFile(pathName);
     try {
-        const data = await fs.readFile(fileToServer, {encoding: 'utf8'});
-        res.writeHead(isFile404 ? 404 : 200, {'Content-Type': 'text/html'});
-        return res.end(data);
+        const data = await fs.readFile(fileToServe, {encoding: 'utf8'});
+        return res.send(data);
     } catch (e) {
-        res.writeHead(500, {'Content-Type': 'text/html'});
-        return res.end('Internal Server Error');
+        res.sendStatus(500);
+        return res.send('Internal Server Error');
+
     }
 });
 
-server.listen(8000, () => {
+app.get('*', async (req, res) => {
+    try {
+        const data = await fs.readFile(NOT_FOUND_404_FILE_NAME, 'utf8');
+        return res.send(data);
+    } catch (e) {
+        res.sendStatus(500);
+        return res.send('Internal Server Error');
+    }
 });
+
+const PORT = 3000;
+app.listen(PORT);
+
